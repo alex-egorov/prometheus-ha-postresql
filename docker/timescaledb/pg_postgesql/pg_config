@@ -1,0 +1,3 @@
+#!/bin/sh
+
+export PV_VER=pg10-bitnami

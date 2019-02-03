@@ -1,0 +1,132 @@
+
+prometheus:
+  extraScrapeConfigs: |
+    remote_write:
+      - url: "http://prom-prometheus-postgresql-adapter:9201/write"
+    remote_read:
+      - url: "http://prom-prometheus-postgresql-adapter:9201/read"
+
+prometheus-postgresql-adapter:
+  pgSchema: timeseries
+  pgHost: prom-postgresql
+  pgDatabase: prometheus
+  pgPassword: admin123
+
+postgresql:
+  image:
+    registry: docker.io
+    repository: alex202/timescaledb
+    tag: 1.2.0-pg10-bitnami
+    pullPolicy: Always
+    debug: false
+  volumePermissions:
+    enabled: true
+    image:
+      registry: docker.io
+      repository: bitnami/minideb
+      tag: latest
+      pullPolicy: Always
+    securityContext:
+      runAsUser: 0
+  securityContext:
+    enabled: true
+    fsGroup: 70
+    runAsUser: 70
+
+  replication:
+    enabled: true
+    user: repl_user
+    password: repl_password
+    slaveReplicas: 2
+    synchronousCommit: "on"
+    numSynchronousReplicas: 1
+    applicationName: my_application
+
+  postgresqlDatabase: prometheus
+  postgresqlUsername: postgres
+  postgresqlPassword: admin123
+
+  service:
+    type: ClusterIP
+    port: 5432
+    annotations: {}
+
+  persistence:
+    enabled: true
+    mountPath: /bitnami/postgresql
+    # storageClass: "-"
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    annotations: {}
+
+  updateStrategy:
+    type: RollingUpdate
+
+  master:
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+
+  slave:
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+
+  networkPolicy:
+    enabled: false
+    allowExternal: true
+
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  metrics:
+    enabled: false
+    service:
+      type: ClusterIP
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+      loadBalancerIP:
+    image:
+      registry: docker.io
+      repository: wrouesnel/postgres_exporter
+      tag: v0.4.6
+      pullPolicy: IfNotPresent
+    livenessProbe:
+      enabled: true
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
+      successThreshold: 1
+
+    readinessProbe:
+      enabled: true
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
+      successThreshold: 1
+
+  extraEnv: {}
+
